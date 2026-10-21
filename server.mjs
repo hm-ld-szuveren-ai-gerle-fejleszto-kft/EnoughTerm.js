@@ -13,6 +13,7 @@ const host = options.host || process.env.HOST || '127.0.0.1';
 const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
 const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
+const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd();
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
 const vite = dev ? await createViteServer({ server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
@@ -59,7 +60,7 @@ server.on('upgrade', (request, socket, head) => {
 wss.on('connection', (ws) => {
   let proc;
   try {
-    proc = pty.spawn(shell, [], { name: 'xterm-256color', cols: 100, rows: 30, cwd: process.env.HOME, env: process.env });
+    proc = pty.spawn(shell, [], { name: 'xterm-256color', cols: 100, rows: 30, cwd: homeDirectory, env: process.env });
   } catch (error) {
     console.error(`Could not start shell ${shell}:`, error);
     ws.close(1011, 'Unable to start shell');

@@ -42,6 +42,7 @@ body { background: #fff; }
   text-align: center;
 }
 .connection-status[hidden] { display: none; }
+.connection-status, .progress-indicator, .status-toast { pointer-events: none; }
 .search-bar input { width: min(360px, 52vw); height: 34px; padding: 0 10px; color: #161b22; background: #fff; border: 1px solid #6e7781; border-radius: 5px; font: 14px "Cascadia Mono", monospace; outline: none; }
 .search-bar input:focus { border-color: #0969da; box-shadow: 0 0 0 2px #0969da40; }
 .search-count { min-width: 74px; color: #24292f; font: 12px "Cascadia Mono", monospace; }

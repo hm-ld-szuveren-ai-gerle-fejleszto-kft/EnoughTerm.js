@@ -20,7 +20,9 @@ const server = http.createServer((request, response) => {
     const path = new URL(request.url, `http://${host}:${port}`).pathname;
     const file = path === '/' ? 'dist/index.html' : `dist${path}`;
     if (!existsSync(file)) { response.statusCode = 404; response.end('Not found'); return; }
-    response.setHeader('Content-Type', file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.js') ? 'text/javascript; charset=utf-8' : file.endsWith('.css') ? 'text/css; charset=utf-8' : 'application/octet-stream');
+    const mimeTypes = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', woff2: 'font/woff2', woff: 'font/woff' };
+    const extension = file.split('.').pop();
+    response.setHeader('Content-Type', mimeTypes[extension] || 'application/octet-stream');
     createReadStream(file).pipe(response);
   });
 });

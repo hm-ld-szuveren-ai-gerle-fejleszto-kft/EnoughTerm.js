@@ -1,4 +1,4 @@
-# Release version v1 finally released?
+# v1 finally released?
 
 # EnoughTerm
 

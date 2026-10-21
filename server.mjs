@@ -14,6 +14,8 @@ const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
 const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
 const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd();
+const outputHighWaterMark = 256 * 1024;
+const outputResumeMark = 128 * 1024;
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
 const vite = dev ? await createViteServer({ server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
@@ -67,16 +69,36 @@ wss.on('connection', (ws) => {
     return;
   }
   let processExited = false;
+  let processStopped = false;
+  let pendingOutputBytes = 0;
+  let ptyPaused = false;
   const stopShell = () => {
-    if (processExited) return;
+    if (processExited || processStopped) return;
+    processStopped = true;
     try { proc.kill(); } catch (error) { console.error('Could not stop shell:', error); }
   };
-  proc.onData((data) => { if (ws.readyState === ws.OPEN) ws.send(data); });
+  proc.onData((data) => {
+    if (ws.readyState !== ws.OPEN) return;
+    const bytes = Buffer.byteLength(data, 'utf8');
+    pendingOutputBytes += bytes;
+    if (pendingOutputBytes >= outputHighWaterMark && !ptyPaused) {
+      ptyPaused = true;
+      proc.pause();
+    }
+    ws.send(JSON.stringify({ type: 'output', data, bytes }), (error) => { if (error) stopShell(); });
+  });
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
     if (msg.type === 'input' && typeof msg.data === 'string' && msg.data.length <= 16_384) proc.write(msg.data);
     if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
+    if (msg.type === 'ack' && Number.isInteger(msg.bytes) && msg.bytes > 0) {
+      pendingOutputBytes = Math.max(0, pendingOutputBytes - msg.bytes);
+      if (ptyPaused && pendingOutputBytes <= outputResumeMark && ws.bufferedAmount <= outputResumeMark && !processExited && !processStopped) {
+        ptyPaused = false;
+        proc.resume();
+      }
+    }
   });
   ws.on('close', stopShell);
   ws.on('error', stopShell);

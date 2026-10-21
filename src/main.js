@@ -131,8 +131,15 @@ function connect() {
   });
   socket.addEventListener('message', (event) => {
     if (typeof event.data === 'string') {
+      let packet;
+      try { packet = JSON.parse(event.data); } catch { packet = { type: 'output', data: event.data }; }
+      if (packet.type !== 'output' || typeof packet.data !== 'string') return;
       connectionStatus.hidden = true;
-      term.write(event.data);
+      term.write(packet.data, () => {
+        if (socket?.readyState === WebSocket.OPEN && Number.isInteger(packet.bytes) && packet.bytes > 0) {
+          socket.send(JSON.stringify({ type: 'ack', bytes: packet.bytes }));
+        }
+      });
     }
   });
   socket.addEventListener('close', (event) => {

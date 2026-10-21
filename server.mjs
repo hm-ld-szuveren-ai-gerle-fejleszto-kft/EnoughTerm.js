@@ -74,6 +74,18 @@ if (dev) {
   });
 }
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+const heartbeatTimer = setInterval(() => {
+  for (const client of wss.clients) {
+    if (client.readyState !== client.OPEN) continue;
+    if (client.isAlive === false) {
+      client.terminate();
+      continue;
+    }
+    client.isAlive = false;
+    client.ping('heartbeat', false, (error) => { if (error) client.terminate(); });
+  }
+}, 15_000);
+heartbeatTimer.unref();
 server.on('upgrade', (request, socket, head) => {
   let pathname;
   try { pathname = new URL(request.url || '/', 'http://localhost').pathname; } catch { socket.destroy(); return; }
@@ -107,6 +119,8 @@ server.on('upgrade', (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
 });
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   let proc;
   try {
     proc = pty.spawn(shell, [], { name: 'xterm-256color', cols: 100, rows: 30, cwd: homeDirectory, env: process.env });
@@ -173,6 +187,7 @@ let shuttingDown = false;
 async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  clearInterval(heartbeatTimer);
   wss.clients.forEach((client) => client.close(1012, 'Server restarting'));
   const httpClose = new Promise((resolve) => server.close(resolve));
   await Promise.allSettled([vite?.close(), httpClose]);

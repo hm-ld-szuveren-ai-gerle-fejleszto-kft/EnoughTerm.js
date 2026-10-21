@@ -2,7 +2,6 @@ import http from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createServer as createViteServer } from 'vite';
 import { WebSocketServer } from 'ws';
 import pty from 'node-pty';
 
@@ -67,6 +66,7 @@ const server = http.createServer((request, response) => {
   stream.pipe(response);
 });
 if (dev) {
+  const { createServer: createViteServer } = await import('vite');
   vite = await createViteServer({
     root: appRoot,
     server: { middlewareMode: true, allowedHosts: [...allowedHosts], hmr: { server, path: devHmrPath } },

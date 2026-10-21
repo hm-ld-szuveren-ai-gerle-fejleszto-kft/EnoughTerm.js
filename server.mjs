@@ -147,8 +147,8 @@ wss.on('connection', (ws) => {
       stopShell();
       return;
     }
-    if (msg.type === 'ack' && Number.isInteger(msg.bytes) && msg.bytes > 0) {
-      pendingOutputBytes = Math.max(0, pendingOutputBytes - msg.bytes);
+    if (msg.type === 'ack' && Number.isSafeInteger(msg.bytes) && msg.bytes > 0 && msg.bytes <= pendingOutputBytes) {
+      pendingOutputBytes -= msg.bytes;
       if (ptyPaused && pendingOutputBytes <= outputResumeMark && !processExited && !processStopped) {
         ptyPaused = false;
         proc.resume();

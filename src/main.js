@@ -33,6 +33,7 @@ document.querySelector('#app').innerHTML = `
 
 let fontSize = 16;
 const term = new Terminal({
+  disableStdin: true,
   cursorBlink: true,
   cursorStyle: 'bar',
   fontFamily: '"Cascadia Mono", monospace',
@@ -137,6 +138,7 @@ function connect() {
   socket = new WebSocket(`${protocol}//${location.host}/terminal`);
   socket.addEventListener('open', () => {
     retries = 0;
+    term.options.disableStdin = false;
     connectionStatus.textContent = 'Connected · waiting for shell output…';
     connectionStatus.hidden = false;
     socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
@@ -155,6 +157,7 @@ function connect() {
     }
   });
   socket.addEventListener('close', (event) => {
+    term.options.disableStdin = true;
     if (intentionalClose) return;
     if (event.code === 1000) {
       connectionStatus.textContent = 'Shell exited · reload to start another session.';
@@ -170,7 +173,7 @@ function connect() {
     connectionStatus.hidden = false;
     setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
   });
-  socket.addEventListener('error', () => socket.close());
+  socket.addEventListener('error', () => { term.options.disableStdin = true; socket.close(); });
 }
 connect();
 function sendTerminalInput(data) {

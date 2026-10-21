@@ -87,7 +87,7 @@ const searchInput = document.querySelector('#search-input');
 const searchCount = document.querySelector('#search-count');
 function updateSearchCount(result) {
   if (!searchInput.value) { searchCount.textContent = ''; return; }
-  searchCount.textContent = result.resultCount ? `${result.resultIndex + 1} of ${result.resultCount}` : 'No matches';
+  searchCount.textContent = result.resultCount ? `${result.resultIndex >= 0 ? result.resultIndex + 1 : 'Many'} of ${result.resultCount}` : 'No matches';
 }
 search.onDidChangeResults(updateSearchCount);
 function openSearch() {

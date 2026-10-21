@@ -11,7 +11,7 @@ const options = Object.fromEntries(process.argv.slice(2).flatMap((arg, index, al
 const host = options.host || process.env.HOST || '127.0.0.1';
 const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
-const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh');
+const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
 const vite = dev ? await createViteServer({ server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
@@ -29,11 +29,22 @@ const server = http.createServer((request, response) => {
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 server.on('upgrade', (request, socket, head) => {
   const origin = request.headers.origin;
-  if (request.url !== '/terminal' || (origin && new URL(origin).host !== request.headers.host)) { socket.destroy(); return; }
+  let allowedOrigin = !origin;
+  if (origin) {
+    try { allowedOrigin = new URL(origin).host === request.headers.host; } catch { allowedOrigin = false; }
+  }
+  if (request.url !== '/terminal' || !allowedOrigin) { socket.destroy(); return; }
   wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
 });
 wss.on('connection', (ws) => {
-  const proc = pty.spawn(shell, [], { name: 'xterm-256color', cols: 100, rows: 30, cwd: process.env.HOME, env: process.env });
+  let proc;
+  try {
+    proc = pty.spawn(shell, [], { name: 'xterm-256color', cols: 100, rows: 30, cwd: process.env.HOME, env: process.env });
+  } catch (error) {
+    console.error(`Could not start shell ${shell}:`, error);
+    ws.close(1011, 'Unable to start shell');
+    return;
+  }
   proc.onData((data) => { if (ws.readyState === ws.OPEN) ws.send(data); });
   ws.on('message', (raw) => {
     let msg;

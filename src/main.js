@@ -14,6 +14,7 @@ import './style.css';
 
 document.querySelector('#app').innerHTML = `
   <main id="terminal" aria-label="Interactive terminal"></main>
+  <div class="connection-status" id="connection-status" role="status" aria-live="polite">Connecting to the local shell…</div>
   <div class="progress-indicator" id="progress-indicator" role="status" aria-live="polite" hidden>
     <span class="progress-label" id="progress-label"></span>
     <span class="progress-track"><span class="progress-value" id="progress-value"></span></span>
@@ -73,6 +74,7 @@ try {
   console.info('WebGL renderer unavailable; using the standard renderer.', error);
 }
 term.focus();
+const connectionStatus = document.querySelector('#connection-status');
 
 const progressIndicator = document.querySelector('#progress-indicator');
 const progressLabel = document.querySelector('#progress-label');
@@ -123,13 +125,22 @@ function connect() {
   socket = new WebSocket(`${protocol}//${location.host}/terminal`);
   socket.addEventListener('open', () => {
     retries = 0;
+    connectionStatus.textContent = 'Connected · waiting for shell output…';
+    connectionStatus.hidden = false;
     socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
   });
   socket.addEventListener('message', (event) => {
-    if (typeof event.data === 'string') term.write(event.data);
+    if (typeof event.data === 'string') {
+      connectionStatus.hidden = true;
+      term.write(event.data);
+    }
   });
   socket.addEventListener('close', () => {
-    if (!intentionalClose) setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
+    if (!intentionalClose) {
+      connectionStatus.textContent = 'Shell connection lost · reconnecting…';
+      connectionStatus.hidden = false;
+      setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
+    }
   });
   socket.addEventListener('error', () => socket.close());
 }

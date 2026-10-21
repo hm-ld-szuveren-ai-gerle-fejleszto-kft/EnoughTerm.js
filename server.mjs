@@ -138,6 +138,7 @@ wss.on('connection', (ws) => {
     if (processExited || processStopped || ws.readyState !== ws.OPEN) return;
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
+    if (msg === null || typeof msg !== 'object' || Array.isArray(msg)) return;
     try {
       if (msg.type === 'input' && typeof msg.data === 'string' && Buffer.byteLength(msg.data, 'utf8') <= maxInputChunkBytes) proc.write(msg.data);
       if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, maxPtyCols)), Math.max(2, Math.min(msg.rows, maxPtyRows)));

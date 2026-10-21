@@ -37,6 +37,8 @@ const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== '
 const devHmrPath = '/__vite_hmr';
 let vite;
 const server = http.createServer((request, response) => {
+  response.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  response.setHeader('X-Frame-Options', 'DENY');
   if (dev) return vite.middlewares(request, response, () => { response.statusCode = 404; response.end('Not found'); });
   let pathname;
   try { pathname = new URL(request.url || '/', 'http://localhost').pathname; } catch {

@@ -27,6 +27,8 @@
     "vite": "^6.0.0"
   },
   "allowScripts": {
-    "node-pty@1.1.0": true
+    "node-pty@1.1.0": true,
+    "esbuild@0.25.12": true,
+    "fsevents@2.3.3": true
   }
 }

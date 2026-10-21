@@ -17,7 +17,7 @@ Open <http://localhost:9001>. To make the server reachable from other devices, c
 npm run dev -- --host 0.0.0.0 --port 9001
 ```
 
-The defaults are `127.0.0.1` and `9001`. `HOST` and `PORT` environment variables are also supported. The system default shell is used; set `SHELL` to override it.
+The defaults are `127.0.0.1` and `9001`. `HOST` and `PORT` environment variables are also supported. The system default shell is used; set `SHELL` to override it. The WebSocket accepts `localhost`, loopback, the configured bind address, and local interface addresses when using a wildcard bind. For a custom DNS name or reverse proxy, add its hostname to the comma-separated `ALLOWED_HOSTS` environment variable.
 
 For a production build, run `npm run build` and then `npm run start -- --host 0.0.0.0 --port 9001`.
 

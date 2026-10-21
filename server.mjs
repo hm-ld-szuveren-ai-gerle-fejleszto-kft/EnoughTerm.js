@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
@@ -16,6 +17,19 @@ const options = Object.fromEntries(process.argv.slice(2).flatMap((arg, index, al
 const host = options.host || process.env.HOST || '127.0.0.1';
 const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
+const normalizeHostname = (hostname) => hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+const allowedHosts = new Set(['localhost', '127.0.0.1', '::1']);
+const bindHost = normalizeHostname(host);
+if (bindHost === '0.0.0.0' || bindHost === '::') {
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    for (const address of addresses || []) allowedHosts.add(normalizeHostname(address.address));
+  }
+} else {
+  allowedHosts.add(bindHost);
+}
+for (const allowedHost of (process.env.ALLOWED_HOSTS || '').split(',')) {
+  if (allowedHost.trim()) allowedHosts.add(normalizeHostname(allowedHost.trim()));
+}
 const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
 const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd();
 const maxInputChunkBytes = 8 * 1024;
@@ -54,11 +68,21 @@ const server = http.createServer((request, response) => {
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 server.on('upgrade', (request, socket, head) => {
   const origin = request.headers.origin;
-  let allowedOrigin = !origin;
+  let requestHostname;
+  try {
+    const requestUrl = new URL(`http://${request.headers.host || ''}`);
+    if (!requestUrl.username && !requestUrl.password && requestUrl.pathname === '/' && !requestUrl.search && !requestUrl.hash) {
+      requestHostname = normalizeHostname(requestUrl.hostname);
+    }
+  } catch { /* Invalid Host headers are rejected below. */ }
+  let allowedOrigin = allowedHosts.has(requestHostname);
   if (origin) {
     try {
       const parsedOrigin = new URL(origin);
-      allowedOrigin = ['http:', 'https:'].includes(parsedOrigin.protocol)
+      allowedOrigin = allowedOrigin
+        && !parsedOrigin.username
+        && !parsedOrigin.password
+        && ['http:', 'https:'].includes(parsedOrigin.protocol)
         && parsedOrigin.host === request.headers.host?.toLowerCase();
     } catch { allowedOrigin = false; }
   }

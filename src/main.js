@@ -161,7 +161,24 @@ function connect() {
   socket.addEventListener('error', () => socket.close());
 }
 connect();
-term.onData((data) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'input', data })); });
+function sendTerminalInput(data) {
+  if (socket?.readyState !== WebSocket.OPEN) return;
+  let chunk = '';
+  let chunkBytes = 0;
+  for (const character of data) {
+    const codePoint = character.codePointAt(0);
+    const characterBytes = codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+    if (chunk && chunkBytes + characterBytes > 8 * 1024) {
+      socket.send(JSON.stringify({ type: 'input', data: chunk }));
+      chunk = '';
+      chunkBytes = 0;
+    }
+    chunk += character;
+    chunkBytes += characterBytes;
+  }
+  if (chunk) socket.send(JSON.stringify({ type: 'input', data: chunk }));
+}
+term.onData(sendTerminalInput);
 term.onResize(({ cols, rows }) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'resize', cols, rows })); });
 const searchBar = document.querySelector('#search-bar');
 const searchInput = document.querySelector('#search-input');

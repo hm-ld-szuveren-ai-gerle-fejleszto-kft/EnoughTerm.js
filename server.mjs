@@ -14,6 +14,7 @@ const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
 const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
 const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd();
+const maxInputChunkBytes = 8 * 1024;
 const outputHighWaterMark = 256 * 1024;
 const outputResumeMark = 128 * 1024;
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
@@ -90,7 +91,7 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
-    if (msg.type === 'input' && typeof msg.data === 'string' && msg.data.length <= 16_384) proc.write(msg.data);
+    if (msg.type === 'input' && typeof msg.data === 'string' && Buffer.byteLength(msg.data, 'utf8') <= maxInputChunkBytes) proc.write(msg.data);
     if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
     if (msg.type === 'ack' && Number.isInteger(msg.bytes) && msg.bytes > 0) {
       pendingOutputBytes = Math.max(0, pendingOutputBytes - msg.bytes);

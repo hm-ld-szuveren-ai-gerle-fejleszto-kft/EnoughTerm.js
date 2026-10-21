@@ -22,11 +22,7 @@ const normalizeHostname = (hostname) => {
 };
 const allowedHosts = new Set(['localhost', '127.0.0.1', '::1']);
 const bindHost = normalizeHostname(host);
-if (bindHost === '0.0.0.0' || bindHost === '::') {
-  allowedHosts.add(bindHost);
-} else {
-  allowedHosts.add(bindHost);
-}
+allowedHosts.add(bindHost);
 for (const allowedHost of (process.env.ALLOWED_HOSTS || '').split(',')) {
   if (allowedHost.trim()) allowedHosts.add(normalizeHostname(allowedHost.trim()));
 }
@@ -38,7 +34,8 @@ const outputResumeMark = 128 * 1024;
 const maxPtyCols = 2000;
 const maxPtyRows = 500;
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
-const vite = dev ? await createViteServer({ root: appRoot, server: { middlewareMode: true }, appType: 'spa' }) : null;
+const devHmrPath = '/__vite_hmr';
+let vite;
 const server = http.createServer((request, response) => {
   if (dev) return vite.middlewares(request, response, () => { response.statusCode = 404; response.end('Not found'); });
   let pathname;
@@ -67,8 +64,23 @@ const server = http.createServer((request, response) => {
   });
   stream.pipe(response);
 });
+if (dev) {
+  vite = await createViteServer({
+    root: appRoot,
+    server: { middlewareMode: true, allowedHosts: [...allowedHosts], hmr: { server, path: devHmrPath } },
+    appType: 'spa',
+  });
+}
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 server.on('upgrade', (request, socket, head) => {
+  let pathname;
+  try { pathname = new URL(request.url || '/', 'http://localhost').pathname; } catch { socket.destroy(); return; }
+  if (pathname !== '/terminal') {
+    const protocol = request.headers['sec-websocket-protocol'];
+    if (dev && pathname === devHmrPath && ['vite-hmr', 'vite-ping'].includes(protocol)) return;
+    socket.destroy();
+    return;
+  }
   const origin = request.headers.origin;
   let requestHostname;
   try {
@@ -89,7 +101,7 @@ server.on('upgrade', (request, socket, head) => {
         && parsedOrigin.host === request.headers.host?.toLowerCase();
     } catch { allowedOrigin = false; }
   }
-  if (request.url !== '/terminal' || !allowedOrigin) { socket.destroy(); return; }
+  if (!allowedOrigin) { socket.destroy(); return; }
   wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
 });
 wss.on('connection', (ws) => {
@@ -149,4 +161,13 @@ wss.on('connection', (ws) => {
 });
 const displayHost = host.includes(':') ? `[${host.replace(/^\[|\]$/g, '')}]` : host;
 server.listen(port, host, () => console.log(`EnoughTerm listening at http://${displayHost}:${port}`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { wss.clients.forEach((client) => client.close(1012, 'Server restarting')); server.close(() => process.exit(0)); });
+let shuttingDown = false;
+async function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  wss.clients.forEach((client) => client.close(1012, 'Server restarting'));
+  const httpClose = new Promise((resolve) => server.close(resolve));
+  await Promise.allSettled([vite?.close(), httpClose]);
+  process.exit(0);
+}
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { void shutdown(); });

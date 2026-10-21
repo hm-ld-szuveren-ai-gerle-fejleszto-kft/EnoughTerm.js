@@ -108,5 +108,6 @@ wss.on('connection', (ws) => {
     if (ws.readyState === ws.OPEN) ws.close(1000, `Shell exited (${exitCode})`);
   });
 });
-server.listen(port, host, () => console.log(`EnoughTerm listening at http://${host}:${port}`));
+const displayHost = host.includes(':') ? `[${host.replace(/^\[|\]$/g, '')}]` : host;
+server.listen(port, host, () => console.log(`EnoughTerm listening at http://${displayHost}:${port}`));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { wss.clients.forEach((client) => client.close()); server.close(() => process.exit(0)); });

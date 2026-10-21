@@ -30,7 +30,7 @@ if (bindHost === '0.0.0.0' || bindHost === '::') {
 for (const allowedHost of (process.env.ALLOWED_HOSTS || '').split(',')) {
   if (allowedHost.trim()) allowedHosts.add(normalizeHostname(allowedHost.trim()));
 }
-const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/sh');
+const shell = process.env.SHELL || (process.platform === 'win32' ? process.env.COMSPEC || 'powershell.exe' : '/bin/sh');
 const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd();
 const maxInputChunkBytes = 8 * 1024;
 const outputHighWaterMark = 256 * 1024;

@@ -35,6 +35,8 @@ const homeDirectory = process.env.HOME || process.env.USERPROFILE || process.cwd
 const maxInputChunkBytes = 8 * 1024;
 const outputHighWaterMark = 256 * 1024;
 const outputResumeMark = 128 * 1024;
+const maxPtyCols = 2000;
+const maxPtyRows = 500;
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
 const vite = dev ? await createViteServer({ root: appRoot, server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
@@ -124,7 +126,7 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw.toString()); } catch { return; }
     try {
       if (msg.type === 'input' && typeof msg.data === 'string' && Buffer.byteLength(msg.data, 'utf8') <= maxInputChunkBytes) proc.write(msg.data);
-      if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
+      if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, maxPtyCols)), Math.max(2, Math.min(msg.rows, maxPtyRows)));
     } catch (error) {
       console.error('Could not update shell:', error);
       stopShell();

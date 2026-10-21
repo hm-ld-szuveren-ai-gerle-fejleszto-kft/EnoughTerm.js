@@ -185,7 +185,10 @@ function connect() {
 }
 connect();
 function sendTerminalInput(data) {
-  if (socket?.readyState !== WebSocket.OPEN) return;
+  if (socket?.readyState !== WebSocket.OPEN) {
+    term.options.disableStdin = true;
+    return;
+  }
   let chunk = '';
   let chunkBytes = 0;
   for (const character of data) {

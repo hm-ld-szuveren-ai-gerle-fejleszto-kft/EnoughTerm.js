@@ -3,6 +3,10 @@ import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+import { ImageAddon } from '@xterm/addon-image';
+import { WebglAddon } from '@xterm/addon-webgl';
+import { SerializeAddon } from '@xterm/addon-serialize';
+import { ProgressAddon } from '@xterm/addon-progress';
 import '@fontsource/cascadia-mono/400.css';
 import '@fontsource/cascadia-mono/600.css';
 import '@xterm/xterm/css/xterm.css';
@@ -10,6 +14,11 @@ import './style.css';
 
 document.querySelector('#app').innerHTML = `
   <main id="terminal" aria-label="Interactive terminal"></main>
+  <div class="progress-indicator" id="progress-indicator" role="status" aria-live="polite" hidden>
+    <span class="progress-label" id="progress-label"></span>
+    <span class="progress-track"><span class="progress-value" id="progress-value"></span></span>
+  </div>
+  <div class="status-toast" id="status-toast" role="status" aria-live="polite" hidden></div>
   <form class="search-bar" id="search-bar" role="search" aria-label="Find in terminal" hidden>
     <input id="search-input" type="search" placeholder="Find in terminal" aria-label="Find in terminal" autocomplete="off" />
     <span class="search-count" id="search-count" aria-live="polite"></span>
@@ -36,9 +45,15 @@ const term = new Terminal({
 const fit = new FitAddon();
 const search = new SearchAddon({ highlightLimit: 1000 });
 const unicode = new Unicode11Addon();
+const images = new ImageAddon({ pixelLimit: 16_777_216, storageLimit: 64 });
+const serialize = new SerializeAddon();
+const progress = new ProgressAddon();
 term.loadAddon(fit);
 term.loadAddon(search);
 term.loadAddon(unicode);
+term.loadAddon(images);
+term.loadAddon(serialize);
+term.loadAddon(progress);
 term.unicode.activeVersion = '11';
 function openHttpLink(event, uri) {
   let target;
@@ -50,7 +65,46 @@ function openHttpLink(event, uri) {
 term.options.linkHandler = { allowNonHttpProtocols: false, activate: openHttpLink };
 term.loadAddon(new WebLinksAddon(openHttpLink));
 term.open(document.querySelector('#terminal'));
+try {
+  const webgl = new WebglAddon();
+  webgl.onContextLoss(() => webgl.dispose());
+  term.loadAddon(webgl);
+} catch (error) {
+  console.info('WebGL renderer unavailable; using the standard renderer.', error);
+}
 term.focus();
+
+const progressIndicator = document.querySelector('#progress-indicator');
+const progressLabel = document.querySelector('#progress-label');
+const progressValue = document.querySelector('#progress-value');
+progress.onChange(({ state, value }) => {
+  progressIndicator.hidden = state === 0;
+  progressIndicator.dataset.state = String(state);
+  progressValue.style.width = `${state === 3 ? 35 : value}%`;
+  progressLabel.textContent = state === 3 ? 'Working…' : state === 2 ? `Error · ${value}%` : state === 4 ? `Paused · ${value}%` : `${value}%`;
+  progressIndicator.setAttribute('aria-label', progressLabel.textContent);
+});
+let toastTimer;
+function showToast(message) {
+  const toast = document.querySelector('#status-toast');
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
+}
+function exportSession() {
+  const content = serialize.serialize();
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `enoughterm-session-${new Date().toISOString().replace(/[:.]/g, '-')}.ansi`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Terminal session exported as ANSI text');
+}
 
 function fitTerminal() {
   requestAnimationFrame(() => {
@@ -119,6 +173,12 @@ searchInput.addEventListener('keydown', (event) => {
 window.addEventListener('keydown', (event) => {
   if (event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey)) return;
   const key = event.key.toLowerCase();
+  if (event.shiftKey && key === 'e') {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    exportSession();
+    return;
+  }
   if (key === 'f') {
     event.preventDefault();
     event.stopImmediatePropagation();

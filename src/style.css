@@ -32,6 +32,45 @@ body { background: #fff; }
 .search-close { font-size: 21px; }
 .search-step:hover, .search-close:hover { background: #eaeef2; border-color: #57606a; }
 button:focus-visible { outline: 3px solid #0969da; outline-offset: 2px; }
+.progress-indicator {
+  position: fixed;
+  z-index: 9;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: auto minmax(110px, 180px);
+  align-items: center;
+  gap: 10px;
+  min-width: 210px;
+  padding: 9px 11px;
+  border: 1px solid #6e7781;
+  border-radius: 6px;
+  background: #fff;
+  color: #161b22;
+  box-shadow: 0 3px 14px #1f23282b;
+  font: 12px "Cascadia Mono", monospace;
+}
+.progress-indicator[hidden], .status-toast[hidden] { display: none; }
+.progress-track { height: 8px; overflow: hidden; border: 1px solid #6e7781; border-radius: 5px; background: #f6f8fa; }
+.progress-value { display: block; width: 0; height: 100%; background: #0969da; transition: width 120ms linear; }
+.progress-indicator[data-state="2"] .progress-value { background: #cf222e; }
+.progress-indicator[data-state="4"] .progress-value { background: #9a6700; }
+.progress-indicator[data-state="3"] .progress-value { animation: progress-indeterminate 1.1s ease-in-out infinite alternate; }
+@keyframes progress-indeterminate { from { transform: translateX(-55%); } to { transform: translateX(190%); } }
+.status-toast {
+  position: fixed;
+  z-index: 11;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 9px 13px;
+  border: 1px solid #57606a;
+  border-radius: 6px;
+  background: #fff;
+  color: #161b22;
+  box-shadow: 0 3px 14px #1f23282b;
+  font: 12px "Cascadia Mono", monospace;
+}
 @media (max-width: 520px) {
   #terminal { padding: 10px 9px; }
   .search-bar { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); left: max(8px, env(safe-area-inset-left)); gap: 4px; }

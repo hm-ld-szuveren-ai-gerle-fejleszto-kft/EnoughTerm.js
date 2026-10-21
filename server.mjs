@@ -45,6 +45,11 @@ wss.on('connection', (ws) => {
     ws.close(1011, 'Unable to start shell');
     return;
   }
+  let processExited = false;
+  const stopShell = () => {
+    if (processExited) return;
+    try { proc.kill(); } catch (error) { console.error('Could not stop shell:', error); }
+  };
   proc.onData((data) => { if (ws.readyState === ws.OPEN) ws.send(data); });
   ws.on('message', (raw) => {
     let msg;
@@ -52,9 +57,12 @@ wss.on('connection', (ws) => {
     if (msg.type === 'input' && typeof msg.data === 'string' && msg.data.length <= 16_384) proc.write(msg.data);
     if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
   });
-  ws.on('close', () => proc.kill());
-  ws.on('error', () => proc.kill());
-  proc.onExit(() => { if (ws.readyState === ws.OPEN) ws.close(); });
+  ws.on('close', stopShell);
+  ws.on('error', stopShell);
+  proc.onExit(({ exitCode }) => {
+    processExited = true;
+    if (ws.readyState === ws.OPEN) ws.close(1000, `Shell exited (${exitCode})`);
+  });
 });
 server.listen(port, host, () => console.log(`EnoughTerm listening at http://${host}:${port}`));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { wss.clients.forEach((client) => client.close()); server.close(() => process.exit(0)); });

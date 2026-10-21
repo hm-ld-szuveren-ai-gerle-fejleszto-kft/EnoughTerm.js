@@ -135,12 +135,21 @@ function connect() {
       term.write(event.data);
     }
   });
-  socket.addEventListener('close', () => {
-    if (!intentionalClose) {
-      connectionStatus.textContent = 'Shell connection lost · reconnecting…';
+  socket.addEventListener('close', (event) => {
+    if (intentionalClose) return;
+    if (event.code === 1000) {
+      connectionStatus.textContent = 'Shell exited · reload to start another session.';
       connectionStatus.hidden = false;
-      setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
+      return;
     }
+    if (event.code === 1011) {
+      connectionStatus.textContent = 'Shell could not start · check the server configuration.';
+      connectionStatus.hidden = false;
+      return;
+    }
+    connectionStatus.textContent = 'Shell connection lost · reconnecting…';
+    connectionStatus.hidden = false;
+    setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
   });
   socket.addEventListener('error', () => socket.close());
 }

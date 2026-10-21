@@ -1,6 +1,5 @@
 import http from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
@@ -17,14 +16,14 @@ const options = Object.fromEntries(process.argv.slice(2).flatMap((arg, index, al
 const host = options.host || process.env.HOST || '127.0.0.1';
 const port = Number(options.port || process.env.PORT || 9001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
-const normalizeHostname = (hostname) => hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+const normalizeHostname = (hostname) => {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  return normalized.startsWith('::ffff:') ? normalized.slice(7) : normalized;
+};
 const allowedHosts = new Set(['localhost', '127.0.0.1', '::1']);
 const bindHost = normalizeHostname(host);
 if (bindHost === '0.0.0.0' || bindHost === '::') {
   allowedHosts.add(bindHost);
-  for (const addresses of Object.values(os.networkInterfaces())) {
-    for (const address of addresses || []) allowedHosts.add(normalizeHostname(address.address));
-  }
 } else {
   allowedHosts.add(bindHost);
 }
@@ -76,7 +75,8 @@ server.on('upgrade', (request, socket, head) => {
       requestHostname = normalizeHostname(requestUrl.hostname);
     }
   } catch { /* Invalid Host headers are rejected below. */ }
-  let allowedOrigin = allowedHosts.has(requestHostname);
+  const localAddress = normalizeHostname(request.socket.localAddress || '');
+  let allowedOrigin = allowedHosts.has(requestHostname) || requestHostname === localAddress;
   if (origin) {
     try {
       const parsedOrigin = new URL(origin);

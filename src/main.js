@@ -9,34 +9,23 @@ import '@xterm/xterm/css/xterm.css';
 import './style.css';
 
 document.querySelector('#app').innerHTML = `
-  <main class="app-shell">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark">⌘</span><span>EnoughTerm</span></div>
-      <div class="session"><span class="status-dot"></span><span id="status">Connecting</span><span class="divider"></span><span id="shell-label">Local shell</span></div>
-      <button class="icon-button" id="clear" title="Clear terminal" aria-label="Clear terminal">⌫</button>
-    </header>
-    <section class="terminal-card" aria-label="Terminal">
-      <div class="terminal-topline"><span class="window-dots"><i></i><i></i><i></i></span><span class="tab-title">Terminal <span class="tab-path">· ~</span></span><span class="kbd-hint">Ctrl+F to search</span><button class="toolbar-button" id="search-toggle" title="Find in terminal (Ctrl+F)" aria-label="Find in terminal"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"></circle><path d="m16 16 4.2 4.2"></path></svg><span>Find</span></button></div>
-      <form class="search-bar" id="search-bar" role="search" hidden>
-        <input id="search-input" type="search" placeholder="Find in terminal" aria-label="Find in terminal" autocomplete="off" />
-        <span class="search-count" id="search-count" aria-live="polite"></span>
-        <button type="button" class="search-step" id="search-previous" title="Previous match" aria-label="Previous match">↑</button>
-        <button type="button" class="search-step" id="search-next" title="Next match" aria-label="Next match">↓</button>
-        <button type="button" class="search-close" id="search-close" title="Close search" aria-label="Close search">×</button>
-      </form>
-      <div id="terminal"></div>
-    </section>
-    <footer><span>Interactive local terminal</span><span>Port 9001</span></footer>
-  </main>
+  <main id="terminal" aria-label="Interactive terminal"></main>
+  <form class="search-bar" id="search-bar" role="search" aria-label="Find in terminal" hidden>
+    <input id="search-input" type="search" placeholder="Find in terminal" aria-label="Find in terminal" autocomplete="off" />
+    <span class="search-count" id="search-count" aria-live="polite"></span>
+    <button type="button" class="search-step" id="search-previous" title="Previous match" aria-label="Previous match">↑</button>
+    <button type="button" class="search-step" id="search-next" title="Next match" aria-label="Next match">↓</button>
+    <button type="button" class="search-close" id="search-close" title="Close search" aria-label="Close search">×</button>
+  </form>
 `;
 
-const status = document.querySelector('#status');
+let fontSize = 16;
 const term = new Terminal({
   cursorBlink: true,
   cursorStyle: 'bar',
   fontFamily: '"Cascadia Mono", monospace',
-  fontSize: 14,
-  lineHeight: 1.55,
+  fontSize,
+  lineHeight: 1.45,
   scrollback: 5000,
   theme: {
     background: '#ffffff', foreground: '#161b22', cursor: '#163c77', cursorAccent: '#ffffff', selectionBackground: '#c5dcff', selectionForeground: '#111827',
@@ -51,13 +40,26 @@ term.loadAddon(fit);
 term.loadAddon(search);
 term.loadAddon(unicode);
 term.unicode.activeVersion = '11';
-term.loadAddon(new WebLinksAddon((event, uri) => {
+function openHttpLink(event, uri) {
+  let target;
+  try { target = new URL(uri, location.href); } catch { return; }
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') return;
   event.preventDefault();
-  window.open(uri, '_blank', 'noopener,noreferrer');
-}));
+  window.open(target.href, '_blank', 'noopener,noreferrer');
+}
+term.options.linkHandler = { allowNonHttpProtocols: false, activate: openHttpLink };
+term.loadAddon(new WebLinksAddon(openHttpLink));
 term.open(document.querySelector('#terminal'));
-fit.fit();
 term.focus();
+
+function fitTerminal() {
+  requestAnimationFrame(() => {
+    fit.fit();
+    if (term.rows > 0) term.refresh(0, term.rows - 1);
+  });
+}
+document.fonts.ready.then(fitTerminal);
+fitTerminal();
 
 let socket;
 let retries = 0;
@@ -67,16 +69,12 @@ function connect() {
   socket = new WebSocket(`${protocol}//${location.host}/terminal`);
   socket.addEventListener('open', () => {
     retries = 0;
-    status.textContent = 'Connected';
-    status.classList.add('connected');
     socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
   });
   socket.addEventListener('message', (event) => {
     if (typeof event.data === 'string') term.write(event.data);
   });
   socket.addEventListener('close', () => {
-    status.textContent = 'Disconnected';
-    status.classList.remove('connected');
     if (!intentionalClose) setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
   });
   socket.addEventListener('error', () => socket.close());
@@ -84,7 +82,6 @@ function connect() {
 connect();
 term.onData((data) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'input', data })); });
 term.onResize(({ cols, rows }) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'resize', cols, rows })); });
-document.querySelector('#clear').addEventListener('click', () => { term.clear(); term.focus(); });
 const searchBar = document.querySelector('#search-bar');
 const searchInput = document.querySelector('#search-input');
 const searchCount = document.querySelector('#search-count');
@@ -105,7 +102,6 @@ function searchFor(direction = 'next') {
   const found = direction === 'previous' ? search.findPrevious(query, options) : search.findNext(query, options);
   if (!found) searchCount.textContent = 'No matches';
 }
-document.querySelector('#search-toggle').addEventListener('click', openSearch);
 document.querySelector('#search-close').addEventListener('click', () => {
   searchBar.hidden = true;
   search.clearDecorations();
@@ -120,14 +116,34 @@ searchInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') { event.preventDefault(); searchFor(event.shiftKey ? 'previous' : 'next'); }
   if (event.key === 'Escape') document.querySelector('#search-close').click();
 });
-term.attachCustomKeyEventHandler((event) => {
-  if (event.type === 'keydown' && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+window.addEventListener('keydown', (event) => {
+  if (event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey)) return;
+  const key = event.key.toLowerCase();
+  if (key === 'f') {
     event.preventDefault();
+    event.stopImmediatePropagation();
     openSearch();
-    return false;
+    return;
   }
-  return true;
-});
-const observer = new ResizeObserver(() => fit.fit());
+  if (key === '+' || key === '=' || key === '-' || key === '_') {
+    event.preventDefault();
+    fontSize = Math.max(11, Math.min(30, fontSize + (key === '-' || key === '_' ? -1 : 1)));
+    term.options.fontSize = fontSize;
+    fitTerminal();
+  } else if (key === '0') {
+    event.preventDefault();
+    fontSize = 16;
+    term.options.fontSize = fontSize;
+    fitTerminal();
+  }
+}, { capture: true });
+const observer = new ResizeObserver(fitTerminal);
 observer.observe(document.querySelector('#terminal'));
+window.addEventListener('resize', fitTerminal, { passive: true });
+window.visualViewport?.addEventListener('resize', fitTerminal, { passive: true });
+function watchDevicePixelRatio() {
+  const density = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+  density.addEventListener('change', () => { fitTerminal(); watchDevicePixelRatio(); }, { once: true });
+}
+watchDevicePixelRatio();
 window.addEventListener('beforeunload', () => { intentionalClose = true; socket?.close(); });

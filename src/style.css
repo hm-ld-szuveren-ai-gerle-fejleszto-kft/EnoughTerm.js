@@ -1,41 +1,41 @@
 :root {
   color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f3f5f8;
+  background: #fff;
   color: #161b22;
   font-synthesis: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: linear-gradient(180deg, #fff 0, #f3f5f8 310px); }
-.app-shell { min-height: 100vh; max-width: 1500px; margin: auto; padding: 0 42px 22px; display: flex; flex-direction: column; }
-.topbar { height: 74px; display: flex; align-items: center; border-bottom: 1px solid #d0d7de; gap: 18px; }
-.brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 14px; letter-spacing: -.2px; color: #161b22; }
-.brand-mark { display: grid; place-items: center; height: 27px; width: 27px; color: #fff; background: #174ea6; border-radius: 8px; font-size: 15px; }
-.session { margin-left: auto; color: #424a53; display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 600; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #9a6700; }
-.status-dot:has(+ .connected) { background: #1a7f37; }
-.connected { color: #116329; }
-.divider { height: 12px; width: 1px; background: #afb8c1; margin: 0 4px; }
-.icon-button { border: 1px solid #8c959f; color: #24292f; background: #fff; width: 34px; height: 34px; border-radius: 7px; font-size: 17px; cursor: pointer; }
-.icon-button:hover, .toolbar-button:hover, .search-step:hover, .search-close:hover { background: #eaeef2; border-color: #57606a; }
-.terminal-card { flex: 1; min-height: 430px; max-height: calc(100vh - 138px); margin: 36px auto 0; width: 100%; border: 1px solid #8c959f; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 16px 36px #1f232808, 0 2px 5px #1f23280d; display: flex; flex-direction: column; }
-.terminal-topline { height: 46px; min-height: 46px; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #afb8c1; color: #24292f; font-size: 12px; font-weight: 650; gap: 14px; background: #f6f8fa; }
-.window-dots { display: flex; gap: 6px; }
-.window-dots i { width: 8px; height: 8px; border-radius: 50%; background: #57606a; }
-.window-dots i:first-child { background: #cf222e; }.window-dots i:nth-child(2) { background: #9a6700; }.window-dots i:nth-child(3) { background: #1a7f37; }
-.tab-path { color: #57606a; font-weight: 500; }
-.kbd-hint { margin-left: auto; color: #424a53; font: 11px "Cascadia Mono", monospace; }
-.toolbar-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 0 9px; color: #24292f; background: #fff; border: 1px solid #8c959f; border-radius: 6px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
-.toolbar-button svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-.search-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #afb8c1; }
+html, body, #app { width: 100%; height: 100%; min-width: 320px; margin: 0; overflow: hidden; }
+body { background: #fff; }
+#terminal { width: 100vw; height: 100vh; height: 100dvh; padding: 16px 18px; background: #fff; }
+.xterm { width: 100%; height: 100%; }
+.xterm-viewport { scrollbar-width: thin; scrollbar-color: #8c959f #f6f8fa; }
+.search-bar {
+  position: fixed;
+  z-index: 10;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #6e7781;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 4px 18px #1f232833;
+}
 .search-bar[hidden] { display: none; }
-.search-bar input { width: min(360px, 52vw); height: 32px; padding: 0 10px; color: #161b22; background: #fff; border: 1px solid #6e7781; border-radius: 5px; font: 13px "Cascadia Mono", monospace; outline: none; }
+.search-bar input { width: min(360px, 52vw); height: 34px; padding: 0 10px; color: #161b22; background: #fff; border: 1px solid #6e7781; border-radius: 5px; font: 14px "Cascadia Mono", monospace; outline: none; }
 .search-bar input:focus { border-color: #0969da; box-shadow: 0 0 0 2px #0969da40; }
-.search-count { min-width: 74px; color: #424a53; font-size: 11px; }
-.search-step, .search-close { width: 30px; height: 30px; border: 1px solid #8c959f; border-radius: 5px; background: #fff; color: #24292f; font-size: 16px; cursor: pointer; }
-.search-close { font-size: 20px; line-height: 1; }
-#terminal { padding: 18px 20px 14px; flex: 1; min-height: 0; }
-.xterm { height: 100%; }.xterm-viewport { scrollbar-width: thin; scrollbar-color: #8c959f #f6f8fa; }
-footer { display: flex; justify-content: space-between; padding: 18px 2px 0; color: #424a53; font-size: 11px; font-family: "Cascadia Mono", monospace; }
+.search-count { min-width: 74px; color: #24292f; font: 12px "Cascadia Mono", monospace; }
+.search-step, .search-close { width: 32px; height: 32px; border: 1px solid #8c959f; border-radius: 5px; background: #fff; color: #24292f; font: 600 18px/1 "Cascadia Mono", monospace; cursor: pointer; }
+.search-close { font-size: 21px; }
+.search-step:hover, .search-close:hover { background: #eaeef2; border-color: #57606a; }
 button:focus-visible { outline: 3px solid #0969da; outline-offset: 2px; }
-@media (max-width: 640px) { .app-shell { padding: 0 14px 14px; }.topbar { height: 60px; }.terminal-card { margin-top: 18px; min-height: 350px; max-height: calc(100vh - 108px); }.terminal-topline { padding: 0 11px; gap: 9px; }.kbd-hint { display: none; } #terminal { padding: 12px 10px; }.search-bar { padding: 7px; gap: 4px; }.search-count { min-width: auto; font-size: 10px; } }
+@media (max-width: 520px) {
+  #terminal { padding: 10px 9px; }
+  .search-bar { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); left: max(8px, env(safe-area-inset-left)); gap: 4px; }
+  .search-bar input { width: auto; min-width: 0; flex: 1; }
+  .search-count { min-width: 54px; font-size: 10px; }
+  .search-step, .search-close { width: 30px; height: 30px; }
+}

@@ -2,7 +2,7 @@
 
 A small browser terminal powered by [xterm.js](https://github.com/xtermjs/xterm.js) and a local pseudo-terminal.
 
-The interface uses a high contrast light theme, bundled Cascadia Mono, URL detection, terminal text search (`Ctrl+F`), and Unicode 11 character widths.
+The terminal fills the entire page and uses a high contrast light theme, bundled Cascadia Mono, URL detection, terminal text search (`Ctrl+F` or `Cmd+F`), and Unicode 11 character widths. Use `Ctrl/Cmd` + `+` or `-` to resize text; `Ctrl/Cmd` + `0` restores the default size. xterm.js and the fit addon adapt the terminal grid to the viewport and device pixel ratio.
 
 ## Run
 

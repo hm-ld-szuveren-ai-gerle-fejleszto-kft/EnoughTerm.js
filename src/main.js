@@ -17,7 +17,9 @@ document.querySelector('#app').innerHTML = `
   <div class="connection-status" id="connection-status" role="status" aria-live="polite">Connecting to the local shell…</div>
   <div class="progress-indicator" id="progress-indicator" role="status" aria-live="polite" hidden>
     <span class="progress-label" id="progress-label"></span>
-    <span class="progress-track"><span class="progress-value" id="progress-value"></span></span>
+    <span class="progress-track" id="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+      <span class="progress-value" id="progress-value"></span>
+    </span>
   </div>
   <div class="status-toast" id="status-toast" role="status" aria-live="polite" hidden></div>
   <form class="search-bar" id="search-bar" role="search" aria-label="Find in terminal" hidden>
@@ -78,13 +80,23 @@ const connectionStatus = document.querySelector('#connection-status');
 
 const progressIndicator = document.querySelector('#progress-indicator');
 const progressLabel = document.querySelector('#progress-label');
+const progressTrack = document.querySelector('#progress-track');
 const progressValue = document.querySelector('#progress-value');
 progress.onChange(({ state, value }) => {
+  const percentage = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+  const indeterminate = state === 3;
   progressIndicator.hidden = state === 0;
   progressIndicator.dataset.state = String(state);
-  progressValue.style.width = `${state === 3 ? 35 : value}%`;
-  progressLabel.textContent = state === 3 ? 'Working…' : state === 2 ? `Error · ${value}%` : state === 4 ? `Paused · ${value}%` : `${value}%`;
+  progressValue.style.width = `${indeterminate ? 35 : percentage}%`;
+  progressLabel.textContent = indeterminate ? 'Working…' : state === 2 ? `Error · ${percentage}%` : state === 4 ? `Paused · ${percentage}%` : `${percentage}%`;
   progressIndicator.setAttribute('aria-label', progressLabel.textContent);
+  if (indeterminate) {
+    progressTrack.removeAttribute('aria-valuenow');
+    progressTrack.setAttribute('aria-valuetext', 'Work in progress; percentage unavailable');
+  } else {
+    progressTrack.setAttribute('aria-valuenow', String(percentage));
+    progressTrack.setAttribute('aria-valuetext', state === 2 ? `Error at ${percentage}%` : state === 4 ? `Paused at ${percentage}%` : `${percentage}% complete`);
+  }
 });
 let toastTimer;
 function showToast(message) {

@@ -2,7 +2,7 @@
 
 A small browser terminal powered by [xterm.js](https://github.com/xtermjs/xterm.js) and a local pseudo-terminal.
 
-The terminal fills the entire page and uses a high contrast light theme, bundled Cascadia Mono, URL detection, inline SIXEL/iTerm images, WebGL rendering with automatic renderer fallback, Unicode 11 character widths, and progress indicators for compatible terminal sequences. Search with `Ctrl+F` or `Cmd+F`. Export the current session as an ANSI text file with `Ctrl/Cmd+Shift+E` (export only; session import is not supported). Use `Ctrl/Cmd` + `+` or `-` to resize text; `Ctrl/Cmd` + `0` restores the default size. xterm.js and the fit addon adapt the terminal grid to the viewport and device pixel ratio.
+The terminal fills the entire page and uses a high contrast light theme, bundled Cascadia Mono, URL detection, inline SIXEL and iTerm images, WebGL rendering with automatic renderer fallback, Unicode 11 character widths, and progress indicators for compatible terminal sequences. Search with `Ctrl+F` or `Cmd+F`. Export the current terminal buffer and scrollback as an ANSI text file with `Ctrl/Cmd+Shift+E`. The export does not include inline image payloads, and session import is not supported. Use `Ctrl/Cmd` + `+` or `-` to resize text; `Ctrl/Cmd` + `0` restores the default size. xterm.js and the fit addon adapt the terminal grid to the viewport and device pixel ratio.
 
 ## Run
 

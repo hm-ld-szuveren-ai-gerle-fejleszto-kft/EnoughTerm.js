@@ -94,10 +94,17 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'output', data, bytes }), (error) => { if (error) stopShell(); });
   });
   ws.on('message', (raw) => {
+    if (processExited || processStopped || ws.readyState !== ws.OPEN) return;
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
-    if (msg.type === 'input' && typeof msg.data === 'string' && Buffer.byteLength(msg.data, 'utf8') <= maxInputChunkBytes) proc.write(msg.data);
-    if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
+    try {
+      if (msg.type === 'input' && typeof msg.data === 'string' && Buffer.byteLength(msg.data, 'utf8') <= maxInputChunkBytes) proc.write(msg.data);
+      if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
+    } catch (error) {
+      console.error('Could not update shell:', error);
+      stopShell();
+      return;
+    }
     if (msg.type === 'ack' && Number.isInteger(msg.bytes) && msg.bytes > 0) {
       pendingOutputBytes = Math.max(0, pendingOutputBytes - msg.bytes);
       if (ptyPaused && pendingOutputBytes <= outputResumeMark && !processExited && !processStopped) {

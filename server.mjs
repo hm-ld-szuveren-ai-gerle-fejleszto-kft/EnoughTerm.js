@@ -1,9 +1,13 @@
 import http from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 import { WebSocketServer } from 'ws';
 import pty from 'node-pty';
 
+const appRoot = fileURLToPath(new URL('.', import.meta.url));
+const distRoot = path.join(appRoot, 'dist');
 const options = Object.fromEntries(process.argv.slice(2).flatMap((arg, index, all) => {
   if (!arg.startsWith('--')) return [];
   const [key, inlineValue] = arg.slice(2).split('=', 2);
@@ -18,16 +22,17 @@ const maxInputChunkBytes = 8 * 1024;
 const outputHighWaterMark = 256 * 1024;
 const outputResumeMark = 128 * 1024;
 const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== 'production';
-const vite = dev ? await createViteServer({ server: { middlewareMode: true }, appType: 'spa' }) : null;
+const vite = dev ? await createViteServer({ root: appRoot, server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
   if (dev) return vite.middlewares(request, response, () => { response.statusCode = 404; response.end('Not found'); });
-  let path;
-  try { path = new URL(request.url || '/', 'http://localhost').pathname; } catch {
+  let pathname;
+  try { pathname = new URL(request.url || '/', 'http://localhost').pathname; } catch {
     response.statusCode = 400;
     response.end('Bad request');
     return;
   }
-  const file = path === '/' ? 'dist/index.html' : `dist${path}`;
+  const file = path.resolve(distRoot, pathname === '/' ? 'index.html' : `.${pathname}`);
+  if (!file.startsWith(`${distRoot}${path.sep}`)) { response.statusCode = 404; response.end('Not found'); return; }
   let stats;
   try { stats = statSync(file); } catch {
     response.statusCode = 404;

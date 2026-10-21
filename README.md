@@ -2,6 +2,8 @@
 
 A small browser terminal powered by [xterm.js](https://github.com/xtermjs/xterm.js) and a local pseudo-terminal.
 
+The interface uses a high contrast light theme, bundled Cascadia Mono, URL detection, terminal text search (`Ctrl+F`), and Unicode 11 character widths.
+
 ## Run
 
 ```sh

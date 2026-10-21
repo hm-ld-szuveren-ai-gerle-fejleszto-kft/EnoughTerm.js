@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createReadStream, statSync } from 'node:fs';
 import { createServer as createViteServer } from 'vite';
 import { WebSocketServer } from 'ws';
 import pty from 'node-pty';
@@ -16,20 +17,30 @@ const dev = !process.argv.includes('--production') && process.env.NODE_ENV !== '
 const vite = dev ? await createViteServer({ server: { middlewareMode: true }, appType: 'spa' }) : null;
 const server = http.createServer((request, response) => {
   if (dev) return vite.middlewares(request, response, () => { response.statusCode = 404; response.end('Not found'); });
-  import('node:fs').then(({ createReadStream, existsSync }) => {
-    let path;
-    try { path = new URL(request.url || '/', 'http://localhost').pathname; } catch {
-      response.statusCode = 400;
-      response.end('Bad request');
-      return;
-    }
-    const file = path === '/' ? 'dist/index.html' : `dist${path}`;
-    if (!existsSync(file)) { response.statusCode = 404; response.end('Not found'); return; }
-    const mimeTypes = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', woff2: 'font/woff2', woff: 'font/woff' };
-    const extension = file.split('.').pop();
-    response.setHeader('Content-Type', mimeTypes[extension] || 'application/octet-stream');
-    createReadStream(file).pipe(response);
+  let path;
+  try { path = new URL(request.url || '/', 'http://localhost').pathname; } catch {
+    response.statusCode = 400;
+    response.end('Bad request');
+    return;
+  }
+  const file = path === '/' ? 'dist/index.html' : `dist${path}`;
+  let stats;
+  try { stats = statSync(file); } catch {
+    response.statusCode = 404;
+    response.end('Not found');
+    return;
+  }
+  if (!stats.isFile()) { response.statusCode = 404; response.end('Not found'); return; }
+  const mimeTypes = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', woff2: 'font/woff2', woff: 'font/woff' };
+  const extension = file.split('.').pop();
+  response.setHeader('Content-Type', mimeTypes[extension] || 'application/octet-stream');
+  const stream = createReadStream(file);
+  stream.on('error', (error) => {
+    console.error('Could not serve a static file:', error);
+    if (response.headersSent) response.destroy();
+    else { response.statusCode = error.code === 'ENOENT' ? 404 : 500; response.end('Could not serve file'); }
   });
+  stream.pipe(response);
 });
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 server.on('upgrade', (request, socket, head) => {

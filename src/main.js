@@ -180,7 +180,7 @@ function connect() {
   connection.addEventListener('error', () => {
     if (socket !== connection) return;
     term.options.disableStdin = true;
-    connection.close();
+    if (connection.readyState === WebSocket.OPEN) connection.close();
   });
 }
 connect();

@@ -17,7 +17,7 @@ document.querySelector('#app').innerHTML = `
   <div class="connection-status" id="connection-status" role="status" aria-live="polite">Connecting to the local shell…</div>
   <div class="progress-indicator" id="progress-indicator" role="status" aria-live="polite" hidden>
     <span class="progress-label" id="progress-label"></span>
-    <span class="progress-track" id="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+    <span class="progress-track" id="progress-track" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100">
       <span class="progress-value" id="progress-value"></span>
     </span>
   </div>

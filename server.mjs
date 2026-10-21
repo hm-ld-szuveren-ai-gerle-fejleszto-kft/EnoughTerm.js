@@ -110,4 +110,4 @@ wss.on('connection', (ws) => {
 });
 const displayHost = host.includes(':') ? `[${host.replace(/^\[|\]$/g, '')}]` : host;
 server.listen(port, host, () => console.log(`EnoughTerm listening at http://${displayHost}:${port}`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { wss.clients.forEach((client) => client.close()); server.close(() => process.exit(0)); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { wss.clients.forEach((client) => client.close(1012, 'Server restarting')); server.close(() => process.exit(0)); });

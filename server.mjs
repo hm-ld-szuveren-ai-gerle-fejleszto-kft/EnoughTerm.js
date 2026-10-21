@@ -17,7 +17,12 @@ const vite = dev ? await createViteServer({ server: { middlewareMode: true }, ap
 const server = http.createServer((request, response) => {
   if (dev) return vite.middlewares(request, response, () => { response.statusCode = 404; response.end('Not found'); });
   import('node:fs').then(({ createReadStream, existsSync }) => {
-    const path = new URL(request.url, `http://${host}:${port}`).pathname;
+    let path;
+    try { path = new URL(request.url || '/', 'http://localhost').pathname; } catch {
+      response.statusCode = 400;
+      response.end('Bad request');
+      return;
+    }
     const file = path === '/' ? 'dist/index.html' : `dist${path}`;
     if (!existsSync(file)) { response.statusCode = 404; response.end('Not found'); return; }
     const mimeTypes = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', woff2: 'font/woff2', woff: 'font/woff' };
@@ -31,7 +36,11 @@ server.on('upgrade', (request, socket, head) => {
   const origin = request.headers.origin;
   let allowedOrigin = !origin;
   if (origin) {
-    try { allowedOrigin = new URL(origin).host === request.headers.host; } catch { allowedOrigin = false; }
+    try {
+      const parsedOrigin = new URL(origin);
+      allowedOrigin = ['http:', 'https:'].includes(parsedOrigin.protocol)
+        && parsedOrigin.host === request.headers.host?.toLowerCase();
+    } catch { allowedOrigin = false; }
   }
   if (request.url !== '/terminal' || !allowedOrigin) { socket.destroy(); return; }
   wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));

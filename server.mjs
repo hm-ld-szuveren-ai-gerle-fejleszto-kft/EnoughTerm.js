@@ -21,6 +21,7 @@ const normalizeHostname = (hostname) => hostname.toLowerCase().replace(/^\[|\]$/
 const allowedHosts = new Set(['localhost', '127.0.0.1', '::1']);
 const bindHost = normalizeHostname(host);
 if (bindHost === '0.0.0.0' || bindHost === '::') {
+  allowedHosts.add(bindHost);
   for (const addresses of Object.values(os.networkInterfaces())) {
     for (const address of addresses || []) allowedHosts.add(normalizeHostname(address.address));
   }

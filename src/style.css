@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root { color-scheme: dark; font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b0c0f; color: #ededf0; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(ellipse at 48% -22%, #27292a 0, #131417 38%, #0b0c0f 74%); }
+.app-shell { min-height: 100vh; max-width: 1500px; margin: auto; padding: 0 42px 22px; display: flex; flex-direction: column; }
+.topbar { height: 74px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.075); gap: 18px; }
+.brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 14px; letter-spacing: -.2px; }
+.brand-mark { display: grid; place-items: center; height: 27px; width: 27px; color: #11140c; background: #c4f36b; border-radius: 8px; font-size: 15px; }
+.session { margin-left: auto; color: #96979d; display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 500; }
+.status-dot { width: 7px; height: 7px; border-radius: 10px; background: #e9a94c; box-shadow: 0 0 9px #e9a94c66; }
+.connected + .divider + #shell-label, .connected { color: #b7db81; }
+.connected ~ .status-dot { background: #c4f36b; }
+.divider { height: 12px; width: 1px; background: #34353a; margin: 0 4px; }
+.icon-button { border: 1px solid #33343a; color: #a5a6ad; background: #17181c; width: 32px; height: 32px; border-radius: 8px; font-size: 17px; cursor: pointer; }
+.icon-button:hover { border-color: #55575e; color: white; }
+.terminal-card { flex: 1; min-height: 430px; max-height: calc(100vh - 138px); margin: 36px auto 0; width: 100%; border: 1px solid #34353a; border-radius: 12px; overflow: hidden; background: #101114; box-shadow: 0 24px 80px #0008, 0 2px 8px #0006; display: flex; flex-direction: column; }
+.terminal-topline { height: 43px; min-height: 43px; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #27282d; color: #c7c7cc; font-size: 11px; font-weight: 600; gap: 14px; background: #15161a; }
+.window-dots { display: flex; gap: 6px; }
+.window-dots i { width: 8px; height: 8px; border-radius: 50%; background: #52535a; }
+.window-dots i:first-child { background: #f17465; }.window-dots i:nth-child(2) { background: #e9b84d; }.window-dots i:nth-child(3) { background: #68bb68; }
+.tab-path { color: #777982; font-weight: 400; }.kbd-hint { margin-left: auto; color: #6e7078; font: 10px 'DM Mono', monospace; }
+#terminal { padding: 18px 20px 14px; flex: 1; min-height: 0; }
+.xterm { height: 100%; }.xterm-viewport { scrollbar-width: thin; scrollbar-color: #42434a transparent; }
+footer { display: flex; justify-content: space-between; padding: 18px 2px 0; color: #65666d; font-size: 10px; font-family: 'DM Mono', monospace; }
+@media (max-width: 640px) { .app-shell { padding: 0 14px 14px; }.topbar { height: 60px; }.terminal-card { margin-top: 18px; min-height: 350px; max-height: calc(100vh - 108px); }.terminal-topline { padding: 0 11px; }.kbd-hint { display: none; } #terminal { padding: 12px 10px; } }

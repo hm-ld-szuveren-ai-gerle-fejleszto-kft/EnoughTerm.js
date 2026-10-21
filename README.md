@@ -1,5 +1,5 @@
 # Release version v1 finally released?
----
+
 # EnoughTerm
 
 A small browser terminal powered by [xterm.js](https://github.com/xtermjs/xterm.js) and a local pseudo-terminal.

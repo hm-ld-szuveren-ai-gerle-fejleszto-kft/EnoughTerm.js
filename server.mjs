@@ -115,6 +115,7 @@ wss.on('connection', (ws) => {
   }
   let processExited = false;
   let processStopped = false;
+  let processHadOutput = false;
   let pendingOutputBytes = 0;
   let ptyPaused = false;
   const stopShell = () => {
@@ -123,6 +124,7 @@ wss.on('connection', (ws) => {
     try { proc.kill(); } catch (error) { console.error('Could not stop shell:', error); }
   };
   proc.onData((data) => {
+    processHadOutput = true;
     if (ws.readyState !== ws.OPEN) return;
     const bytes = Buffer.byteLength(data, 'utf8');
     pendingOutputBytes += bytes;
@@ -156,7 +158,10 @@ wss.on('connection', (ws) => {
   ws.on('error', stopShell);
   proc.onExit(({ exitCode }) => {
     processExited = true;
-    if (ws.readyState === ws.OPEN) ws.close(1000, `Shell exited (${exitCode})`);
+    if (ws.readyState === ws.OPEN) {
+      if (!processHadOutput && exitCode !== 0) ws.close(1011, 'Shell could not start');
+      else ws.close(1000, `Shell exited (${exitCode})`);
+    }
   });
 });
 const displayHost = host.includes(':') ? `[${host.replace(/^\[|\]$/g, '')}]` : host;

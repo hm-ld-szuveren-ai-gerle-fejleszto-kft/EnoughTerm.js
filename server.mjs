@@ -95,7 +95,7 @@ wss.on('connection', (ws) => {
     if (msg.type === 'resize' && Number.isInteger(msg.cols) && Number.isInteger(msg.rows)) proc.resize(Math.max(2, Math.min(msg.cols, 300)), Math.max(2, Math.min(msg.rows, 120)));
     if (msg.type === 'ack' && Number.isInteger(msg.bytes) && msg.bytes > 0) {
       pendingOutputBytes = Math.max(0, pendingOutputBytes - msg.bytes);
-      if (ptyPaused && pendingOutputBytes <= outputResumeMark && ws.bufferedAmount <= outputResumeMark && !processExited && !processStopped) {
+      if (ptyPaused && pendingOutputBytes <= outputResumeMark && !processExited && !processStopped) {
         ptyPaused = false;
         proc.resume();
       }

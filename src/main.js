@@ -34,12 +34,12 @@ document.querySelector('#app').innerHTML = `
 let fontSize = 16;
 const term = new Terminal({
   disableStdin: true,
-  cursorBlink: true,
-  cursorStyle: 'bar',
+  cursorBlink: false,
+  cursorStyle: 'block',
   fontFamily: '"Cascadia Mono", monospace',
   fontSize,
-  lineHeight: 1.45,
-  scrollback: 5000,
+  scrollback: 10000,
+  allowProposedApi: true,
   theme: {
     background: '#ffffff', foreground: '#161b22', cursor: '#163c77', cursorAccent: '#ffffff', selectionBackground: '#c5dcff', selectionForeground: '#111827',
     black: '#24292f', red: '#a40e26', green: '#116329', yellow: '#795000', blue: '#0645ad', magenta: '#762a83', cyan: '#006a75', white: '#57606a',

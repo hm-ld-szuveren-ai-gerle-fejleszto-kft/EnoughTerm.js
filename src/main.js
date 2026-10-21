@@ -135,28 +135,32 @@ let retries = 0;
 let intentionalClose = false;
 function connect() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  socket = new WebSocket(`${protocol}//${location.host}/terminal`);
-  socket.addEventListener('open', () => {
+  const connection = new WebSocket(`${protocol}//${location.host}/terminal`);
+  socket = connection;
+  connection.addEventListener('open', () => {
+    if (socket !== connection) return;
     retries = 0;
     term.options.disableStdin = false;
     connectionStatus.textContent = 'Connected · waiting for shell output…';
     connectionStatus.hidden = false;
-    socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+    connection.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
   });
-  socket.addEventListener('message', (event) => {
+  connection.addEventListener('message', (event) => {
+    if (socket !== connection) return;
     if (typeof event.data === 'string') {
       let packet;
       try { packet = JSON.parse(event.data); } catch { packet = { type: 'output', data: event.data }; }
       if (packet.type !== 'output' || typeof packet.data !== 'string') return;
       connectionStatus.hidden = true;
       term.write(packet.data, () => {
-        if (socket?.readyState === WebSocket.OPEN && Number.isInteger(packet.bytes) && packet.bytes > 0) {
-          socket.send(JSON.stringify({ type: 'ack', bytes: packet.bytes }));
+        if (socket === connection && connection.readyState === WebSocket.OPEN && Number.isInteger(packet.bytes) && packet.bytes > 0) {
+          connection.send(JSON.stringify({ type: 'ack', bytes: packet.bytes }));
         }
       });
     }
   });
-  socket.addEventListener('close', (event) => {
+  connection.addEventListener('close', (event) => {
+    if (socket !== connection) return;
     term.options.disableStdin = true;
     if (intentionalClose) return;
     if (event.code === 1000) {
@@ -173,7 +177,11 @@ function connect() {
     connectionStatus.hidden = false;
     setTimeout(connect, Math.min(1000 * 2 ** retries++, 8000));
   });
-  socket.addEventListener('error', () => { term.options.disableStdin = true; socket.close(); });
+  connection.addEventListener('error', () => {
+    if (socket !== connection) return;
+    term.options.disableStdin = true;
+    connection.close();
+  });
 }
 connect();
 function sendTerminalInput(data) {
